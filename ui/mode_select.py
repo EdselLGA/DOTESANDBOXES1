@@ -40,7 +40,7 @@ class ModeSelect(Frame):
             font=("Comic Sans MS", 18),
             width=12,
             command=lambda: manager.show_screen("MainMenu")
-        ).pack(side="bottom", pady=30)
+        ).pack(side="bottom", pady=50)
 
     def load(self, **kwargs):
         self.place(relwidth=1, relheight=1)

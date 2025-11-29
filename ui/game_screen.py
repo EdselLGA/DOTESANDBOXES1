@@ -30,7 +30,9 @@ class GameScreen(Frame):
                                 bg=BG_COLOR, font=("Comic Sans MS", 20))
         self.turn_label.pack(pady=15)
 
-        Button(self.right, text="HINT", font=("Comic Sans MS", 18), width=12).pack(pady=10)
+        Button(self.right, text="HINT", font=("Comic Sans MS", 18), width=12,
+               command=self.show_hint).pack(pady=10)
+
         Button(self.right, text="UNDO", font=("Comic Sans MS", 18), width=12).pack(pady=10)
 
         Button(self.right, text="BACK", font=("Comic Sans MS", 18), width=12,
@@ -86,7 +88,17 @@ class GameScreen(Frame):
                 self.engine.display_turn_text()
             except:
                 pass
+    def show_hint(self):
+        if not self.engine:
+            return
 
+        move = self.engine.get_hint()
+        if move is None:
+            return
+
+        edge_type, pos = move
+        self.engine.highlight_edge(edge_type, pos)
+    
     def on_click(self, event):
         if not self.engine:
             return
