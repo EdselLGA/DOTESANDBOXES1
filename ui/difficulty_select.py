@@ -50,7 +50,7 @@ class DifficultySelect(Frame):
             command=lambda: manager.show_screen("ModeSelect")
         ).pack(side="bottom", pady=30)
 
-    def load(self):
+    def load(self, **kwargs):
         self.place(relwidth=1, relheight=1)
 
     def unload(self):

@@ -2,10 +2,6 @@
 from tkinter import Frame, Canvas, Label, Button
 from utils.constants import BG_COLOR, BORDER_COLOR
 
-# import GameEngine lazily inside load to avoid engine executing at import-time
-# from core.game_engine import GameEngine
-
-
 class GameScreen(Frame):
     def __init__(self, parent, manager):
         super().__init__(parent, bg=BG_COLOR,
@@ -14,17 +10,14 @@ class GameScreen(Frame):
 
         self.manager = manager
 
-        # create canvas widget but do NOT attach engine yet
+        # Canvas
         self.canvas = Canvas(self, width=600, height=600, bg="white")
         self.canvas.pack(side="left", padx=30, pady=30)
 
-        # engine will be created in load()
         self.engine = None
-
-        # Bind a placeholder click handler that does nothing until engine exists
         self.canvas.bind("<Button-1>", self._placeholder_click)
 
-        # Right: UI panel
+        # Right panel
         self.right = Frame(self, bg=BG_COLOR)
         self.right.pack(side="right", fill="y", padx=10, pady=10)
         self.right.configure(highlightbackground=BORDER_COLOR, highlightthickness=4)
@@ -47,27 +40,18 @@ class GameScreen(Frame):
         self.difficulty = None
 
     def _placeholder_click(self, event):
-        # Do nothing until engine is created
         return "no-engine"
 
-    def load(self, mode=None, difficulty=None):
-        # Lazy import and engine creation to avoid engine running on import
+    def load(self, mode=None, difficulty=None, **kwargs):
+        # Lazy load engine
         if self.engine is None:
             try:
                 from core.game_engine import GameEngine
+                self.engine = GameEngine(self.canvas)
             except Exception as e:
-                print("[GameScreen] Failed to import GameEngine:", e)
-                GameEngine = None
+                print("[GameScreen] Error creating GameEngine:", e)
+                self.engine = None
 
-            if GameEngine:
-                # create engine passing canvas
-                try:
-                    self.engine = GameEngine(self.canvas)
-                except Exception as e:
-                    print("[GameScreen] Error creating GameEngine:", e)
-                    self.engine = None
-
-        # Replace click handler with engine-aware handler
         if self.engine:
             self.canvas.unbind("<Button-1>")
             self.canvas.bind("<Button-1>", self.on_click)
@@ -75,23 +59,16 @@ class GameScreen(Frame):
         self.mode = mode
         self.difficulty = difficulty
 
-        # Place UI
         self.place(relwidth=1, relheight=1)
 
-        # Reset engine state now that screen is visible
-        if self.engine:
-            if hasattr(self.engine, "reset_game_state"):
-                try:
-                    self.engine.reset_game_state()
-                except Exception as e:
-                    print("[GameScreen] engine.reset_game_state error:", e)
-            elif hasattr(self.engine, "reset"):
-                try:
-                    self.engine.reset()
-                except Exception as e:
-                    print("[GameScreen] engine.reset error:", e)
+        # Reset engine
+        if self.engine and hasattr(self.engine, "reset_game_state"):
+            try:
+                self.engine.reset_game_state()
+            except Exception as e:
+                print("[GameScreen] reset_game_state error:", e)
 
-        # Update UI title
+        # Update title
         if mode == "PVP" or mode is None:
             self.title.config(text="Player vs Player")
         else:
@@ -100,33 +77,39 @@ class GameScreen(Frame):
         self.update_turn_label()
 
     def unload(self):
-        # Hide UI
         self.place_forget()
 
     def update_turn_label(self):
-        if self.engine:
-            if hasattr(self.engine, "current_player"):
-                self.turn_label.config(text=f"Turn: {self.engine.current_player}")
-            elif hasattr(self.engine, "turn_text"):
-                self.turn_label.config(text=self.engine.turn_text)
-            else:
-                self.turn_label.config(text="")
+        # Engine handles drawing turn-text on canvas
+        if self.engine and hasattr(self.engine, "display_turn_text"):
+            try:
+                self.engine.display_turn_text()
+            except:
+                pass
 
     def on_click(self, event):
-        # route event to engine; engine.click may accept event or coordinates
         if not self.engine:
             return
 
         try:
             result = self.engine.click(event)
-        except Exception:
-            try:
-                result = self.engine.click(event.x, event.y)
-            except Exception as e:
-                print("[GameScreen] engine.click raised:", e)
-                result = None
+        except Exception as e:
+            print("[GameScreen] engine.click error:", e)
+            result = None
 
-        if result:
-            self.manager.show_screen("ResultScreen", result_text=result)
-        else:
-            self.update_turn_label()
+        # Game Over
+        if isinstance(result, dict):
+            winner = result.get("result_text", "")
+            p1 = int(result.get("player1_score", 0))
+            p2 = int(result.get("player2_score", 0))
+
+            self.manager.show_screen(
+                "ResultScreen",
+                result_text=winner,
+                p1_score=p1,
+                p2_score=p2
+            )
+            return
+
+        # Still playing
+        self.update_turn_label()

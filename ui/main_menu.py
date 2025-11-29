@@ -1,16 +1,16 @@
+# ui/main_menu.py
 from tkinter import Frame, Label, Button
 from utils.constants import BG_COLOR, BORDER_COLOR
 
 class MainMenu(Frame):
     def __init__(self, parent, manager):
         super().__init__(
-            parent, 
+            parent,
             bg=BG_COLOR,
             highlightbackground=BORDER_COLOR,
             highlightthickness=6
         )
         self.manager = manager
-        self.place(relwidth=1, relheight=1)
 
         Label(
             self,
@@ -36,5 +36,9 @@ class MainMenu(Frame):
             command=self.quit
         ).pack(pady=10)
 
-    def load(self):
-        pass
+    # load must accept **kwargs because ScreenManager always passes them
+    def load(self, **kwargs):
+        self.place(relwidth=1, relheight=1)
+
+    def unload(self):
+        self.place_forget()

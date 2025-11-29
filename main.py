@@ -1,3 +1,4 @@
+# main.py
 from tkinter import Tk
 from ui.main_menu import MainMenu
 from ui.mode_select import ModeSelect
@@ -24,18 +25,48 @@ class ScreenManager:
 
     def register_screens(self):
         """Create all screens and store them."""
+        # create screens
         self.screens["MainMenu"] = MainMenu(self.root, self)
         self.screens["ModeSelect"] = ModeSelect(self.root, self)
         self.screens["DifficultySelect"] = DifficultySelect(self.root, self)
         self.screens["GameScreen"] = GameScreen(self.root, self)
         self.screens["ResultScreen"] = ResultScreen(self.root, self)
 
-    def show_screen(self, name, **kwargs):
-        """Switch to the selected screen."""
-        screen = self.screens[name]
-        screen.tkraise()       # Bring frame to front
-        screen.load(**kwargs)  # Refresh screen data
+        # start all screens hidden
+        for scr in self.screens.values():
+            # prefer unload if implemented, otherwise place_forget
+            if hasattr(scr, "unload"):
+                try:
+                    scr.unload()
+                except Exception:
+                    scr.place_forget()
+            else:
+                scr.place_forget()
 
+    def show_screen(self, name, **kwargs):
+        """Switch to the selected screen properly."""
+
+        # 1. Hide all screens first
+        for scr in self.screens.values():
+            if hasattr(scr, "unload"):
+                try:
+                    scr.unload()
+                except Exception:
+                    scr.place_forget()
+            else:
+                scr.place_forget()
+
+        # 2. Show the requested screen
+        screen = self.screens[name]
+        screen.tkraise()
+
+        # 3. Load data into it (load accepts **kwargs)
+        if hasattr(screen, "load"):
+            try:
+                screen.load(**kwargs)
+            except TypeError:
+                # fallback if load signature is older (shouldn't happen after these patches)
+                screen.load()
 
 def main():
     root = Tk()
