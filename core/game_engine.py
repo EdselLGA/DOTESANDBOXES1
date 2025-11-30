@@ -167,6 +167,10 @@ class GameEngine:
             text=text, fill=color, font="cmr 15 bold", tags="turn"
         )
 
+    # GAME OVER CHECK (ADDED)
+    def is_gameover(self):
+        return np.all(self.box_owner != 0)
+
     # HINT SUPPORT
     def get_hint(self):
         return self.hints.get_best_move()
