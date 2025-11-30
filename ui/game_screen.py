@@ -1,6 +1,7 @@
 # ui/game_screen.py
 from tkinter import Frame, Canvas, Label, Button
 from utils.constants import BG_COLOR, BORDER_COLOR
+import numpy as np
 
 class GameScreen(Frame):
     def __init__(self, parent, manager):
@@ -30,6 +31,25 @@ class GameScreen(Frame):
                                 bg=BG_COLOR, font=("Comic Sans MS", 20))
         self.turn_label.pack(pady=15)
 
+        # ========================
+        # LIVE SCORE SECTION
+        # ========================
+        score_frame = Frame(self.right, bg=BG_COLOR)
+        score_frame.pack(pady=10)
+
+        self.p1_score_label = Label(score_frame, text="P1: 0",
+                                    fg="white", bg=BG_COLOR,
+                                    font=("Comic Sans MS", 20))
+        self.p1_score_label.pack(pady=5)
+
+        self.p2_score_label = Label(score_frame, text="P2: 0",
+                                    fg="white", bg=BG_COLOR,
+                                    font=("Comic Sans MS", 20))
+        self.p2_score_label.pack(pady=5)
+
+        # ========================
+        # BUTTONS
+        # ========================
         Button(self.right, text="HINT", font=("Comic Sans MS", 18), width=12,
                command=self.show_hint).pack(pady=10)
 
@@ -44,6 +64,9 @@ class GameScreen(Frame):
     def _placeholder_click(self, event):
         return "no-engine"
 
+    # ========================
+    # LOAD SCREEN
+    # ========================
     def load(self, mode=None, difficulty=None, **kwargs):
         # Lazy load engine
         if self.engine is None:
@@ -77,17 +100,37 @@ class GameScreen(Frame):
             self.title.config(text=f"AI Mode: {difficulty.upper() if difficulty else 'EASY'}")
 
         self.update_turn_label()
+        self.update_score_display()
 
     def unload(self):
         self.place_forget()
 
+    # ========================
+    # UPDATE LIVE SCORE
+    # ========================
+    def update_score_display(self):
+        if not self.engine:
+            return
+
+        p1 = int(np.count_nonzero(self.engine.box_owner == 1))
+        p2 = int(np.count_nonzero(self.engine.box_owner == 2))
+
+        self.p1_score_label.config(text=f"P1: {p1}")
+        self.p2_score_label.config(text=f"P2: {p2}")
+
+    # ========================
+    # UPDATE TURN TEXT
+    # ========================
     def update_turn_label(self):
-        # Engine handles drawing turn-text on canvas
         if self.engine and hasattr(self.engine, "display_turn_text"):
             try:
                 self.engine.display_turn_text()
             except:
                 pass
+
+    # ========================
+    # HINT BUTTON
+    # ========================
     def show_hint(self):
         if not self.engine:
             return
@@ -98,7 +141,10 @@ class GameScreen(Frame):
 
         edge_type, pos = move
         self.engine.highlight_edge(edge_type, pos)
-    
+
+    # ========================
+    # CLICK HANDLER
+    # ========================
     def on_click(self, event):
         if not self.engine:
             return
@@ -109,7 +155,10 @@ class GameScreen(Frame):
             print("[GameScreen] engine.click error:", e)
             result = None
 
-        # Game Over
+        # UPDATE LIVE SCORE AFTER EACH CLICK
+        self.update_score_display()
+
+        # GAME OVER
         if isinstance(result, dict):
             winner = result.get("result_text", "")
             p1 = int(result.get("player1_score", 0))
