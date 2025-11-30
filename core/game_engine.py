@@ -1,6 +1,7 @@
 # core/game_engine.py
 from tkinter import *
 from core.hint_engine import HintEngine
+from core.ai_engine import AIEngine
 import numpy as np
 
 size_of_board = 600
@@ -21,6 +22,7 @@ class GameEngine:
         self.canvas = canvas
 
         self.hints = HintEngine(self)
+        self.ai = AIEngine(self)
 
         # Logical matrices
         self.row_status = np.zeros((number_of_dots - 1, number_of_dots))   # 5x6
@@ -196,6 +198,32 @@ class GameEngine:
 
         self.canvas.tag_raise("hint")
         self.canvas.tag_lower("hint", "dot")
+
+    def ai_move(self, difficulty):
+        move = self.ai.get_ai_move(difficulty)
+        if move is None:
+            return None
+
+        t, (r, c) = move
+
+        # Apply move the same way as a normal click
+        if t == "row":
+            self.row_status[r][c] = 1
+        else:
+            self.col_status[r][c] = 1
+
+        self.make_edge(t, (r, c))
+
+        scored = self.update_boxes()
+
+        if not scored:
+            self.player1_turn = not self.player1_turn
+
+        # UPDATE TURN LABEL (MISSING FROM YOUR VERSION)
+        self.display_turn_text()
+
+        # Return whether game is over
+        return self.is_gameover()
 
     # CLICK HANDLER
     def click(self, event):

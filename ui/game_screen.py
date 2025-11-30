@@ -31,9 +31,8 @@ class GameScreen(Frame):
                                 bg=BG_COLOR, font=("Comic Sans MS", 20))
         self.turn_label.pack(pady=15)
 
-        # ========================
+       
         # LIVE SCORE SECTION
-        # ========================
         score_frame = Frame(self.right, bg=BG_COLOR)
         score_frame.pack(pady=10)
 
@@ -47,9 +46,7 @@ class GameScreen(Frame):
                                     font=("Comic Sans MS", 20))
         self.p2_score_label.pack(pady=5)
 
-        # ========================
         # BUTTONS
-        # ========================
         Button(self.right, text="HINT", font=("Comic Sans MS", 18), width=12,
                command=self.show_hint).pack(pady=10)
 
@@ -64,9 +61,7 @@ class GameScreen(Frame):
     def _placeholder_click(self, event):
         return "no-engine"
 
-    # ========================
     # LOAD SCREEN
-    # ========================
     def load(self, mode=None, difficulty=None, **kwargs):
         # Lazy load engine
         if self.engine is None:
@@ -105,9 +100,7 @@ class GameScreen(Frame):
     def unload(self):
         self.place_forget()
 
-    # ========================
     # UPDATE LIVE SCORE
-    # ========================
     def update_score_display(self):
         if not self.engine:
             return
@@ -118,9 +111,7 @@ class GameScreen(Frame):
         self.p1_score_label.config(text=f"P1: {p1}")
         self.p2_score_label.config(text=f"P2: {p2}")
 
-    # ========================
     # UPDATE TURN TEXT
-    # ========================
     def update_turn_label(self):
         if self.engine and hasattr(self.engine, "display_turn_text"):
             try:
@@ -128,9 +119,7 @@ class GameScreen(Frame):
             except:
                 pass
 
-    # ========================
     # HINT BUTTON
-    # ========================
     def show_hint(self):
         if not self.engine:
             return
@@ -141,10 +130,35 @@ class GameScreen(Frame):
 
         edge_type, pos = move
         self.engine.highlight_edge(edge_type, pos)
+    
+    def run_ai_turn(self):
+        if not self.engine:
+            return
 
-    # ========================
+        while self.mode == "AI" and not self.engine.player1_turn:
+            gameover = self.engine.ai_move(self.difficulty)
+
+            self.update_score_display()
+            self.update_turn_label()
+            if gameover:
+                p1 = int(np.count_nonzero(self.engine.box_owner == 1))
+                p2 = int(np.count_nonzero(self.engine.box_owner == 2))
+
+                winner = "Winner: Player 1" if p1 > p2 else (
+                        "Winner: Player 2" if p2 > p1 else "It's a tie")
+
+                self.manager.show_screen("ResultScreen",
+                                     result_text=winner,
+                                     p1_score=p1,
+                                     p2_score=p2)
+                return
+
+        # IMPORTANT:
+        # If AI fails to score → its turn ends → break
+            if self.engine.player1_turn:
+                break
+
     # CLICK HANDLER
-    # ========================
     def on_click(self, event):
         if not self.engine:
             return
@@ -157,6 +171,11 @@ class GameScreen(Frame):
 
         # UPDATE LIVE SCORE AFTER EACH CLICK
         self.update_score_display()
+
+                # AI TURN
+        if self.mode == "AI" and not self.engine.player1_turn:
+            self.after(300, self.run_ai_turn)  # small delay for realism
+
 
         # GAME OVER
         if isinstance(result, dict):
