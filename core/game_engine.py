@@ -31,6 +31,9 @@ class GameEngine:
 
         self.player1_turn = True
         self.turntext_handle = None
+        
+        # Move history for undo functionality
+        self.move_history = []
 
         self.refresh_board()
         self.display_turn_text()
@@ -45,6 +48,7 @@ class GameEngine:
         self.row_status.fill(0)
         self.col_status.fill(0)
         self.box_owner.fill(0)
+        self.move_history.clear()
 
         self.player1_turn = True
 
@@ -173,6 +177,83 @@ class GameEngine:
     def is_gameover(self):
         return np.all(self.box_owner != 0)
 
+    # UNDO LAST MOVE
+    def undo_move(self):
+        if not self.move_history:
+            return False
+        
+        # Peek at the last move to check if it completed a box
+        move_data = self.move_history[-1]
+        t, pos, was_player1_turn, boxes_completed = move_data
+        
+        # Prevent undoing moves that completed boxes
+        if boxes_completed:
+            return False
+        
+        # Pop the last move from history
+        self.move_history.pop()
+        r, c = pos
+        
+        # Undo the edge
+        if t == "row":
+            self.row_status[r][c] = 0
+        else:
+            self.col_status[r][c] = 0
+        
+        # Restore the turn
+        self.player1_turn = was_player1_turn
+        
+        # Redraw the board
+        self.canvas.delete("edge")
+        self.canvas.delete("box")
+        self.refresh_board()
+        self.redraw_all_edges()
+        self.redraw_all_boxes()
+        self.display_turn_text()
+        
+        return True
+    
+    def redraw_all_edges(self):
+        """Redraw all edges from current board state with correct colors"""
+        # Build a map of which edges were made by which player
+        edge_owner = {}
+        for t, pos, was_player1, _ in self.move_history:
+            edge_owner[(t, tuple(pos))] = 1 if was_player1 else 2
+        
+        for r in range(number_of_dots - 1):
+            for c in range(number_of_dots):
+                if self.row_status[r][c] == 1:
+                    owner = edge_owner.get(("row", (r, c)), 1)
+                    color = player1_color if owner == 1 else player2_color
+                    sx = distance_between_dots/2 + r*distance_between_dots
+                    sy = distance_between_dots/2 + c*distance_between_dots
+                    ex = sx + distance_between_dots
+                    ey = sy
+                    self.canvas.create_line(sx, sy, ex, ey, fill=color,
+                                            width=edge_width, tags="edge")
+        
+        for r in range(number_of_dots):
+            for c in range(number_of_dots - 1):
+                if self.col_status[r][c] == 1:
+                    owner = edge_owner.get(("col", (r, c)), 1)
+                    color = player1_color if owner == 1 else player2_color
+                    sx = distance_between_dots/2 + r*distance_between_dots
+                    sy = distance_between_dots/2 + c*distance_between_dots
+                    ex = sx
+                    ey = sy + distance_between_dots
+                    self.canvas.create_line(sx, sy, ex, ey, fill=color,
+                                            width=edge_width, tags="edge")
+        
+        self.canvas.tag_lower("edge", "dot")
+    
+    def redraw_all_boxes(self):
+        """Redraw all completed boxes from current board state"""
+        for r in range(number_of_dots - 1):
+            for c in range(number_of_dots - 1):
+                if self.box_owner[r][c] != 0:
+                    owner = int(self.box_owner[r][c])
+                    self.shade_box(r, c, owner)
+
     # HINT SUPPORT
     def get_hint(self):
         return self.hints.get_best_move()
@@ -237,6 +318,9 @@ class GameEngine:
             return None
 
         r, c = pos
+        
+        # Store state before move
+        was_player1_turn = self.player1_turn
 
         if t == "row":
             self.row_status[r][c] = 1
@@ -246,9 +330,19 @@ class GameEngine:
         self.make_edge(t, pos)
 
         scored = self.update_boxes()
+        
+        # Track which boxes were completed in this move
+        boxes_completed = []
+        for br in range(number_of_dots - 1):
+            for bc in range(number_of_dots - 1):
+                if self.box_owner[br][bc] == (1 if was_player1_turn else 2):
+                    boxes_completed.append((br, bc))
 
         if not scored:
             self.player1_turn = not self.player1_turn
+        
+        # Save move to history
+        self.move_history.append((t, (r, c), was_player1_turn, boxes_completed))
 
         self.display_turn_text()
 

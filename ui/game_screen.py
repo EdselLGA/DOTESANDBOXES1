@@ -50,7 +50,9 @@ class GameScreen(Frame):
         Button(self.right, text="HINT", font=("Comic Sans MS", 18), width=12,
                command=self.show_hint).pack(pady=10)
 
-        Button(self.right, text="UNDO", font=("Comic Sans MS", 18), width=12).pack(pady=10)
+        self.undo_button = Button(self.right, text="UNDO", font=("Comic Sans MS", 18), width=12,
+               command=self.undo_move)
+        self.undo_button.pack(pady=10)
 
         Button(self.right, text="BACK", font=("Comic Sans MS", 18), width=12,
                command=lambda: manager.show_screen("ModeSelect")).pack(pady=40)
@@ -91,8 +93,10 @@ class GameScreen(Frame):
         # Update title
         if mode == "PVP" or mode is None:
             self.title.config(text="Player vs Player")
+            self.undo_button.config(state="normal")
         else:
             self.title.config(text=f"AI Mode: {difficulty.upper() if difficulty else 'EASY'}")
+            self.undo_button.config(state="disabled")
 
         self.update_turn_label()
         self.update_score_display()
@@ -130,6 +134,16 @@ class GameScreen(Frame):
 
         edge_type, pos = move
         self.engine.highlight_edge(edge_type, pos)
+    
+    # UNDO BUTTON
+    def undo_move(self):
+        if not self.engine:
+            return
+        
+        result = self.engine.undo_move()
+        if result:
+            self.update_score_display()
+            self.update_turn_label()
     
     def run_ai_turn(self):
         if not self.engine:
