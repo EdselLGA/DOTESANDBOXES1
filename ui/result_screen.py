@@ -1,4 +1,3 @@
-# ui/result_screen.py
 from tkinter import Frame, Label, Button, PhotoImage
 from utils.constants import BG_COLOR, BORDER_COLOR
 
@@ -33,7 +32,6 @@ class ResultScreen(Frame):
         score_frame = Frame(self, bg=BG_COLOR)
         score_frame.pack(pady=30)
 
-        # P1
         p1_panel = Frame(score_frame, bg=BG_COLOR)
         p1_panel.pack(side="left", padx=30)
         if self.img_p1:
@@ -42,7 +40,6 @@ class ResultScreen(Frame):
                                   fg="white", bg="#2B2A2A", width=5)
         self.lbl_p1_score.pack(side="left")
 
-        # P2
         p2_panel = Frame(score_frame, bg=BG_COLOR)
         p2_panel.pack(side="left", padx=30)
         if self.img_p2:

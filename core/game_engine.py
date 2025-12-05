@@ -1,4 +1,3 @@
-# core/game_engine.py
 from tkinter import *
 from core.hint_engine import HintEngine
 from core.ai_engine import AIEngine
@@ -24,21 +23,18 @@ class GameEngine:
         self.hints = HintEngine(self)
         self.ai = AIEngine(self)
 
-        # Logical matrices
-        self.row_status = np.zeros((number_of_dots - 1, number_of_dots))   # 5x6
-        self.col_status = np.zeros((number_of_dots, number_of_dots - 1))   # 6x5
-        self.box_owner = np.zeros((number_of_dots - 1, number_of_dots - 1))  # 5x5
+        self.row_status = np.zeros((number_of_dots - 1, number_of_dots))
+        self.col_status = np.zeros((number_of_dots, number_of_dots - 1))
+        self.box_owner = np.zeros((number_of_dots - 1, number_of_dots - 1))
 
         self.player1_turn = True
         self.turntext_handle = None
-        
-        # Move history for undo functionality
+
         self.move_history = []
 
         self.refresh_board()
         self.display_turn_text()
 
-    # RESET GAME
     def reset_game_state(self):
         self.canvas.delete("edge")
         self.canvas.delete("box")
@@ -55,18 +51,15 @@ class GameEngine:
         self.refresh_board()
         self.display_turn_text()
 
-    # GRID LOGIC
     def convert_grid_to_logical_position(self, grid_pos):
         gp = np.array(grid_pos)
         pos = (gp - distance_between_dots / 4) // (distance_between_dots / 2)
 
-        # horizontal edge
         if pos[1] % 2 == 0 and (pos[0] - 1) % 2 == 0:
             r = int((pos[0] - 1) // 2)
             c = int(pos[1] // 2)
             return [r, c], "row"
 
-        # vertical edge
         if pos[0] % 2 == 0 and (pos[1] - 1) % 2 == 0:
             r = int(pos[0] // 2)
             c = int((pos[1] - 1) // 2)
@@ -78,7 +71,6 @@ class GameEngine:
         r, c = pos
         return (self.row_status[r][c] == 1) if t == "row" else (self.col_status[r][c] == 1)
 
-    # GRID DRAWING
     def refresh_board(self):
         self.canvas.delete("grid")
         self.canvas.delete("dot")
@@ -94,7 +86,6 @@ class GameEngine:
                                     size_of_board - distance_between_dots / 2, x,
                                     fill="gray", dash=(2, 2), tags="grid")
 
-        # dots
         for i in range(number_of_dots):
             for j in range(number_of_dots):
                 cx = i * distance_between_dots + distance_between_dots / 2
@@ -103,7 +94,6 @@ class GameEngine:
                                         cx + dot_width / 2, cy + dot_width / 2,
                                         fill=dot_color, outline=dot_color, tags="dot")
 
-    # DRAW EDGE
     def make_edge(self, t, pos):
         r, c = pos
 
@@ -124,7 +114,6 @@ class GameEngine:
                                 width=edge_width, tags="edge")
         self.canvas.tag_lower("edge", "dot")
 
-    # SHADE BOX
     def shade_box(self, r, c, owner):
         color = player1_color_light if owner == 1 else player2_color_light
 
@@ -137,7 +126,6 @@ class GameEngine:
                                      outline="", tags="box")
         self.canvas.tag_lower("box", "dot")
 
-    # BOX DETECTION
     def update_boxes(self):
         completed = False
 
@@ -160,7 +148,6 @@ class GameEngine:
 
         return completed
 
-    # TURN TEXT
     def display_turn_text(self):
         if self.turntext_handle:
             self.canvas.delete(self.turntext_handle)
@@ -173,37 +160,29 @@ class GameEngine:
             text=text, fill=color, font="cmr 15 bold", tags="turn"
         )
 
-    # GAME OVER CHECK (ADDED)
     def is_gameover(self):
         return np.all(self.box_owner != 0)
 
-    # UNDO LAST MOVE
     def undo_move(self):
         if not self.move_history:
             return False
         
-        # Peek at the last move to check if it completed a box
         move_data = self.move_history[-1]
         t, pos, was_player1_turn, boxes_completed = move_data
         
-        # Prevent undoing moves that completed boxes
         if boxes_completed:
             return False
         
-        # Pop the last move from history
         self.move_history.pop()
         r, c = pos
         
-        # Undo the edge
         if t == "row":
             self.row_status[r][c] = 0
         else:
             self.col_status[r][c] = 0
         
-        # Restore the turn
         self.player1_turn = was_player1_turn
         
-        # Redraw the board
         self.canvas.delete("edge")
         self.canvas.delete("box")
         self.refresh_board()
@@ -214,8 +193,6 @@ class GameEngine:
         return True
     
     def redraw_all_edges(self):
-        """Redraw all edges from current board state with correct colors"""
-        # Build a map of which edges were made by which player
         edge_owner = {}
         for t, pos, was_player1, _ in self.move_history:
             edge_owner[(t, tuple(pos))] = 1 if was_player1 else 2
@@ -247,14 +224,12 @@ class GameEngine:
         self.canvas.tag_lower("edge", "dot")
     
     def redraw_all_boxes(self):
-        """Redraw all completed boxes from current board state"""
         for r in range(number_of_dots - 1):
             for c in range(number_of_dots - 1):
                 if self.box_owner[r][c] != 0:
                     owner = int(self.box_owner[r][c])
                     self.shade_box(r, c, owner)
 
-    # HINT SUPPORT
     def get_hint(self):
         return self.hints.get_best_move()
 
@@ -287,7 +262,6 @@ class GameEngine:
 
         t, (r, c) = move
 
-        # Apply move the same way as a normal click
         if t == "row":
             self.row_status[r][c] = 1
         else:
@@ -300,13 +274,10 @@ class GameEngine:
         if not scored:
             self.player1_turn = not self.player1_turn
 
-        # UPDATE TURN LABEL (MISSING FROM YOUR VERSION)
         self.display_turn_text()
 
-        # Return whether game is over
         return self.is_gameover()
 
-    # CLICK HANDLER
     def click(self, event):
         self.canvas.delete("hint")
 
@@ -319,7 +290,6 @@ class GameEngine:
 
         r, c = pos
         
-        # Store state before move
         was_player1_turn = self.player1_turn
 
         if t == "row":
@@ -331,7 +301,6 @@ class GameEngine:
 
         scored = self.update_boxes()
         
-        # Track which boxes were completed in this move
         boxes_completed = []
         for br in range(number_of_dots - 1):
             for bc in range(number_of_dots - 1):
@@ -341,7 +310,6 @@ class GameEngine:
         if not scored:
             self.player1_turn = not self.player1_turn
         
-        # Save move to history
         self.move_history.append((t, (r, c), was_player1_turn, boxes_completed))
 
         self.display_turn_text()

@@ -1,15 +1,9 @@
-# core/HintEngine.py
 import numpy as np
 
 class HintEngine:
     def __init__(self, engine):
-        """
-        engine = reference to GameEngine instance.
-        HintEngine NEVER changes the game state permanently.
-        It only reads the board and simulates temporary moves.
-        """
         self.engine = engine
-        self.N = 6  # since number_of_dots is always 6 unless changed elsewhere
+        self.N = 6
 
     # =====================================================
     # PUBLIC: returns ("row"/"col", (r,c)) of best move
@@ -25,30 +19,22 @@ class HintEngine:
         for move in moves:
             score = self._evaluate(move)
 
-            # Debug:
-            # print(move, "=>", score)
-
             if score > best_score:
                 best_score = score
                 best_move = move
 
         return best_move
 
-    # =====================================================
-    # Generate ALL legal edges that are not drawn yet
-    # =====================================================
     def _get_all_moves(self):
         moves = []
 
-        # horizontal edges (row_status is 5x6)
-        for r in range(self.N - 1):      # 0..4
-            for c in range(self.N):      # 0..5
+        for r in range(self.N - 1):
+            for c in range(self.N):
                 if self.engine.row_status[r][c] == 0:
                     moves.append(("row", (r, c)))
 
-        # vertical edges (col_status is 6x5)
-        for r in range(self.N):          # 0..5
-            for c in range(self.N - 1):  # 0..4
+        for r in range(self.N):
+            for c in range(self.N - 1):
                 if self.engine.col_status[r][c] == 0:
                     moves.append(("col", (r, c)))
 
@@ -61,22 +47,17 @@ class HintEngine:
         t, (r, c) = move
         score = 0
 
-        # Temporary apply move
         self._apply(t, r, c)
 
-        # 1. Completing a box = very good
         if self._would_complete_box():
             score += 100
 
-        # 2. Creating a 3-sided box for opponent = bad
         if self._creates_three_sided_box():
             score -= 50
 
-        # 3. Chain advantage (two-sided boxes)
         chain_gain = self._estimate_chain_gain()
         score += chain_gain * 20
 
-        # 4. Neutral move scoring
         touching = self._count_touching_sides(move)
         if touching == 0:
             score += 2
@@ -85,14 +66,10 @@ class HintEngine:
         elif touching == 2:
             score += 3
 
-        # Undo temporary move
         self._undo(t, r, c)
 
         return score
 
-    # =====================================================
-    # TEMPORARY apply/undo
-    # =====================================================
     def _apply(self, t, r, c):
         if t == "row":
             self.engine.row_status[r][c] = 1
@@ -105,9 +82,6 @@ class HintEngine:
         else:
             self.engine.col_status[r][c] = 0
 
-    # =====================================================
-    # BOX COMPLETION DETECTION
-    # =====================================================
     def _would_complete_box(self):
         for r in range(self.N - 1):
             for c in range(self.N - 1):

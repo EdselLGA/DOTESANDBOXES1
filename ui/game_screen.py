@@ -1,4 +1,3 @@
-# ui/game_screen.py
 from tkinter import Frame, Canvas, Label, Button
 from utils.constants import BG_COLOR, BORDER_COLOR
 import numpy as np
@@ -11,14 +10,12 @@ class GameScreen(Frame):
 
         self.manager = manager
 
-        # Canvas
         self.canvas = Canvas(self, width=600, height=600, bg="white")
         self.canvas.pack(side="left", padx=30, pady=30)
 
         self.engine = None
         self.canvas.bind("<Button-1>", self._placeholder_click)
 
-        # Right panel
         self.right = Frame(self, bg=BG_COLOR)
         self.right.pack(side="right", fill="y", padx=10, pady=10)
         self.right.configure(highlightbackground=BORDER_COLOR, highlightthickness=4)
@@ -31,8 +28,6 @@ class GameScreen(Frame):
                                 bg=BG_COLOR, font=("Comic Sans MS", 20))
         self.turn_label.pack(pady=15)
 
-       
-        # LIVE SCORE SECTION
         score_frame = Frame(self.right, bg=BG_COLOR)
         score_frame.pack(pady=10)
 
@@ -46,7 +41,6 @@ class GameScreen(Frame):
                                     font=("Comic Sans MS", 20))
         self.p2_score_label.pack(pady=5)
 
-        # BUTTONS
         Button(self.right, text="HINT", font=("Comic Sans MS", 18), width=12,
                command=self.show_hint).pack(pady=10)
 
@@ -63,9 +57,7 @@ class GameScreen(Frame):
     def _placeholder_click(self, event):
         return "no-engine"
 
-    # LOAD SCREEN
     def load(self, mode=None, difficulty=None, **kwargs):
-        # Lazy load engine
         if self.engine is None:
             try:
                 from core.game_engine import GameEngine
@@ -83,14 +75,12 @@ class GameScreen(Frame):
 
         self.place(relwidth=1, relheight=1)
 
-        # Reset engine
         if self.engine and hasattr(self.engine, "reset_game_state"):
             try:
                 self.engine.reset_game_state()
             except Exception as e:
                 print("[GameScreen] reset_game_state error:", e)
 
-        # Update title
         if mode == "PVP" or mode is None:
             self.title.config(text="Player vs Player")
             self.undo_button.config(state="normal")
@@ -104,7 +94,6 @@ class GameScreen(Frame):
     def unload(self):
         self.place_forget()
 
-    # UPDATE LIVE SCORE
     def update_score_display(self):
         if not self.engine:
             return
@@ -115,7 +104,6 @@ class GameScreen(Frame):
         self.p1_score_label.config(text=f"P1: {p1}")
         self.p2_score_label.config(text=f"P2: {p2}")
 
-    # UPDATE TURN TEXT
     def update_turn_label(self):
         if self.engine and hasattr(self.engine, "display_turn_text"):
             try:
@@ -123,7 +111,6 @@ class GameScreen(Frame):
             except:
                 pass
 
-    # HINT BUTTON
     def show_hint(self):
         if not self.engine:
             return
@@ -135,7 +122,6 @@ class GameScreen(Frame):
         edge_type, pos = move
         self.engine.highlight_edge(edge_type, pos)
     
-    # UNDO BUTTON
     def undo_move(self):
         if not self.engine:
             return
@@ -144,7 +130,7 @@ class GameScreen(Frame):
         if result:
             self.update_score_display()
             self.update_turn_label()
-    
+
     def run_ai_turn(self):
         if not self.engine:
             return
@@ -167,12 +153,9 @@ class GameScreen(Frame):
                                      p2_score=p2)
                 return
 
-        # IMPORTANT:
-        # If AI fails to score → its turn ends → break
             if self.engine.player1_turn:
                 break
 
-    # CLICK HANDLER
     def on_click(self, event):
         if not self.engine:
             return
@@ -183,15 +166,11 @@ class GameScreen(Frame):
             print("[GameScreen] engine.click error:", e)
             result = None
 
-        # UPDATE LIVE SCORE AFTER EACH CLICK
         self.update_score_display()
 
-                # AI TURN
         if self.mode == "AI" and not self.engine.player1_turn:
-            self.after(300, self.run_ai_turn)  # small delay for realism
+            self.after(300, self.run_ai_turn)
 
-
-        # GAME OVER
         if isinstance(result, dict):
             winner = result.get("result_text", "")
             p1 = int(result.get("player1_score", 0))
@@ -205,5 +184,4 @@ class GameScreen(Frame):
             )
             return
 
-        # Still playing
         self.update_turn_label()

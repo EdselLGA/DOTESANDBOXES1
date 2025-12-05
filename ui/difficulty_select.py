@@ -1,4 +1,3 @@
-# ui/difficulty_select.py
 from tkinter import Frame, Label, Button
 from utils.constants import BG_COLOR, BORDER_COLOR
 

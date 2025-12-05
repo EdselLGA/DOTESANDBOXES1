@@ -1,4 +1,3 @@
-# ui/main_menu.py
 from tkinter import Frame, Label, Button
 from utils.constants import BG_COLOR, BORDER_COLOR
 
@@ -36,7 +35,6 @@ class MainMenu(Frame):
             command=self.quit
         ).pack(pady=10)
 
-    # load must accept **kwargs because ScreenManager always passes them
     def load(self, **kwargs):
         self.place(relwidth=1, relheight=1)
 

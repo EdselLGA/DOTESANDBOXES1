@@ -24,8 +24,7 @@ class ScreenManager:
         self.show_screen("MainMenu")
 
     def register_screens(self):
-        """Create all screens and store them."""
-        # create screens
+       
         self.screens["MainMenu"] = MainMenu(self.root, self)
         self.screens["ModeSelect"] = ModeSelect(self.root, self)
         self.screens["DifficultySelect"] = DifficultySelect(self.root, self)
@@ -46,7 +45,6 @@ class ScreenManager:
     def show_screen(self, name, **kwargs):
         """Switch to the selected screen properly."""
 
-        # 1. Hide all screens first
         for scr in self.screens.values():
             if hasattr(scr, "unload"):
                 try:
@@ -56,16 +54,13 @@ class ScreenManager:
             else:
                 scr.place_forget()
 
-        # 2. Show the requested screen
         screen = self.screens[name]
         screen.tkraise()
 
-        # 3. Load data into it (load accepts **kwargs)
         if hasattr(screen, "load"):
             try:
                 screen.load(**kwargs)
             except TypeError:
-                # fallback if load signature is older (shouldn't happen after these patches)
                 screen.load()
 
 def main():
